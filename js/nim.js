@@ -19,15 +19,17 @@
  * Usage:          Load the script and call Nim.init()                        *
  *----------------------------------------------------------------------------*/
 
-var Nim = (function() {
+var Nim = (function () {
     var maxHeaps = 5,                               // Maximum number of heaps possible
         maxTokens = 5,                              // Maximum number of tokens possible per heap
-        dx = 400/maxHeaps,                          // Column and row sizes in pixels
-        dy = 350/maxTokens,                         // Used for calculating position of Token objects
+        dx = 400 / maxHeaps,                        // Column and row sizes in pixels
+        dy = 350 / maxTokens,                       // Used for calculating position of Token objects
         playerScore = 0,                            // Number of wins for player
         compScore = 0,                              // Number of wins for computer
-        tokens;                                     // Array for storing Token objects
-
+        tokens,                                     // Array for storing Token objects
+        compsTurn = false;                          // we need to track if the computer is having ist turn 
+                                                    // Player starts.
+    
     // Create a reference variable for accessing the game's boundaries
     var playArea = document.getElementById("play-area");
 
@@ -108,6 +110,14 @@ var Nim = (function() {
                     for (j=0; j<tokens[i].length; j++)
                         tokens[i][j].element.heap--;
                 tokens.splice(this.element.heap, 1);
+            }
+            
+            // If the game is about to be won by either Player or Computer in this turn, we score and stop.
+            if (gameWon())
+            {
+                console.log("compsTurn: " + compsTurn);
+                
+                stopGame();
             }
         };
 
@@ -191,8 +201,13 @@ var Nim = (function() {
         var nimSumAll = 0,                          // Nim-sum of all the heap sizes
             nimSumEach = Array(tokens.length),      // Nim-sum of each heap size with nimSumAll
             selectedCol, selectedTok;               // Indices of the computer's selected token
-
-        nimSumAll = tokens[0].length;               // Calculate nim-sum of all the heap sizes
+        
+        compsTurn = true;                           // now the computer is playing. If it should win..
+        
+        if(tokens[0] != null)                            // Calculate nim-sum of all the heap sizes
+        {
+            nimSumAll = tokens[0].length;               
+        }
         for (var i=1; i<tokens.length; i++)
             nimSumAll ^= tokens[i].length;
 
@@ -220,11 +235,56 @@ var Nim = (function() {
 
         tokens[selectedCol][selectedTok].highlight();   // Highlight computer's selection
 
-        // Remove the computer's selection after 2 seconds
-        // As with the event listeners, the value of "this" needs to be corrected with bind()
-        window.setTimeout(tokens[selectedCol][selectedTok].remove.
-                bind(tokens[selectedCol][selectedTok]), 2000);
+        // Remove the computer's selection imediately. 
+        // Waiting for callbacks confuses the state of turns, and there by who is winning
+        tokens[selectedCol][selectedTok].remove();
+
+        // no longer Computers turn
+        compsTurn = false;
     };
+    
+     /*----------------------------------------------------------------------------*
+     * stopGame() function                                                        *
+     *                                                                            *
+     * Ends the game, and show the scoreboard, by calling scoreboard()            *
+     *----------------------------------------------------------------------------*/
+    var stopGame = function()
+    {
+        var winner;
+        if (compsTurn)
+        {
+            winner = "Computer";
+            compScore++;
+        }
+        else
+        {
+            winner = "Player";
+            playerScore++;
+        }
+        //scoreboard();
+        alert(winner + " won\n\n" + "Computer " + compScore + " wins\n" + "Player " + playerScore + " wins");
+        startGame();
+    }
+    
+    /*----------------------------------------------------------------------------*
+     * gameWon() function                                                         *
+     *                                                                            *
+     * Function used to determin if the game is won yet.                          *
+     * When exactly one token is left to be taken, you are winning the game,      *
+     * since you are taking the last one. In this variant, that is.               *
+     *----------------------------------------------------------------------------*/
+    var gameWon = function()
+    {
+        var tokensLeft = 0;
+        for (i=0; i<tokens.length; i++)
+        {
+            if (tokens[i] != null)
+            {
+                tokensLeft += tokens[i].length;
+            }
+        }
+        return tokensLeft == 0;
+    }
 
     return {
         init: function() {      // Public method used to begin the game
